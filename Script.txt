@@ -1,0 +1,1202 @@
+--============================================================--
+--                     SHAW HUB V2                            --
+--                    Made by Shaw                            --
+--              Roblox Studio LocalScript                     --
+--============================================================--
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local Stats = game:GetService("Stats")
+
+local LP = Players.LocalPlayer
+local PlayerGui = LP:WaitForChild("PlayerGui")
+
+--============================================================--
+-- CONFIG
+--============================================================--
+
+local WALK_SPEED = 16
+local JUMP_POWER = 50
+local SPRINT_SPEED = 28
+
+local NOCLIP = false
+local INFINITE_JUMP = false
+local SPRINT = false
+local FIRE_AURA = false
+local SPECTATING = false
+
+local THEME = "Dark"
+local UI_SCALE = 1
+
+local savedCollision = {}
+
+--============================================================--
+-- CLEAN OLD VERSION
+--============================================================--
+
+local old = PlayerGui:FindFirstChild("ShawHub")
+if old then
+	old:Destroy()
+end
+
+--============================================================--
+-- GUI
+--============================================================--
+
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "ShawHub"
+GUI.ResetOnSpawn = false
+GUI.IgnoreGuiInset = true
+GUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+GUI.Parent = PlayerGui
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.fromOffset(320,340)
+Main.Position = UDim2.new(.5,-160,.5,-170)
+Main.BackgroundColor3 = Color3.fromRGB(17,17,22)
+Main.BorderSizePixel = 0
+Main.Parent = GUI
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0,16)
+MainCorner.Parent = Main
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(70,70,85)
+MainStroke.Thickness = 1
+MainStroke.Parent = Main
+
+--============================================================--
+-- HEADER
+--============================================================--
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1,0,0,42)
+Header.BackgroundColor3 = Color3.fromRGB(24,24,30)
+Header.BorderSizePixel = 0
+Header.Parent = Main
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0,16)
+HeaderCorner.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,-55,1,0)
+Title.Position = UDim2.fromOffset(13,0)
+Title.BackgroundTransparency = 1
+Title.Text = "S  SHAW HUB"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(30,30)
+Close.Position = UDim2.new(1,-36,0,6)
+Close.BackgroundColor3 = Color3.fromRGB(55,55,65)
+Close.Text = "×"
+Close.TextColor3 = Color3.new(1,1,1)
+Close.TextSize = 19
+Close.Font = Enum.Font.GothamBold
+Close.Parent = Header
+
+Instance.new("UICorner",Close).CornerRadius = UDim.new(0,9)
+
+--============================================================--
+-- SEARCH
+--============================================================--
+
+local Search = Instance.new("TextBox")
+Search.Size = UDim2.new(1,-20,0,30)
+Search.Position = UDim2.fromOffset(10,50)
+Search.BackgroundColor3 = Color3.fromRGB(29,29,36)
+Search.BorderSizePixel = 0
+Search.PlaceholderText = "Search features..."
+Search.PlaceholderColor3 = Color3.fromRGB(125,125,135)
+Search.Text = ""
+Search.TextColor3 = Color3.new(1,1,1)
+Search.TextSize = 12
+Search.Font = Enum.Font.Gotham
+Search.ClearTextOnFocus = false
+Search.Parent = Main
+
+Instance.new("UICorner",Search).CornerRadius = UDim.new(0,9)
+
+--============================================================--
+-- TABS
+--============================================================--
+
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1,-20,0,32)
+TabBar.Position = UDim2.fromOffset(10,86)
+TabBar.BackgroundTransparency = 1
+TabBar.Parent = Main
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabLayout.Padding = UDim.new(0,3)
+TabLayout.Parent = TabBar
+
+local Pages = {}
+local Tabs = {}
+
+local function CreateTab(name)
+
+	local Button = Instance.new("TextButton")
+	Button.Size = UDim2.fromOffset(55,30)
+	Button.BackgroundColor3 = Color3.fromRGB(30,30,38)
+	Button.BorderSizePixel = 0
+	Button.Text = name
+	Button.TextColor3 = Color3.fromRGB(205,205,215)
+	Button.TextSize = 9
+	Button.Font = Enum.Font.GothamBold
+	Button.Parent = TabBar
+
+	Instance.new("UICorner",Button).CornerRadius = UDim.new(0,8)
+
+	local Page = Instance.new("ScrollingFrame")
+	Page.Size = UDim2.new(1,-20,1,-128)
+	Page.Position = UDim2.fromOffset(10,126)
+	Page.BackgroundTransparency = 1
+	Page.BorderSizePixel = 0
+	Page.ScrollBarThickness = 3
+	Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	Page.CanvasSize = UDim2.new()
+	Page.Visible = false
+	Page.Parent = Main
+
+	local Layout = Instance.new("UIListLayout")
+	Layout.Padding = UDim.new(0,6)
+	Layout.Parent = Page
+
+	Pages[name] = Page
+	Tabs[name] = Button
+
+	return Page,Button
+end
+
+local MovePage,MoveTab = CreateTab("Move")
+local PlayerPage,PlayerTab = CreateTab("Players")
+local EffectsPage,EffectsTab = CreateTab("Effects")
+local SettingsPage,SettingsTab = CreateTab("Settings")
+local InfoPage,InfoTab = CreateTab("Info")
+
+--============================================================--
+-- HELPERS
+--============================================================--
+
+local function MakeButton(parent,text)
+
+	local B = Instance.new("TextButton")
+	B.Size = UDim2.new(1,-4,0,34)
+	B.BackgroundColor3 = Color3.fromRGB(29,29,36)
+	B.BorderSizePixel = 0
+	B.Text = text
+	B.TextColor3 = Color3.fromRGB(235,235,240)
+	B.TextSize = 12
+	B.Font = Enum.Font.GothamMedium
+	B.Parent = parent
+
+	Instance.new("UICorner",B).CornerRadius = UDim.new(0,9)
+
+	return B
+end
+
+local function MakeLabel(parent,text)
+
+	local L = Instance.new("TextLabel")
+	L.Size = UDim2.new(1,-4,0,24)
+	L.BackgroundTransparency = 1
+	L.Text = text
+	L.TextColor3 = Color3.fromRGB(175,175,190)
+	L.TextSize = 11
+	L.Font = Enum.Font.GothamBold
+	L.TextXAlignment = Enum.TextXAlignment.Left
+	L.Parent = parent
+
+	return L
+end
+
+local function Notify(text)
+
+	local N = Instance.new("TextLabel")
+	N.Size = UDim2.fromOffset(235,36)
+	N.Position = UDim2.new(1,-245,1,-48)
+	N.BackgroundColor3 = Color3.fromRGB(25,25,32)
+	N.Text = text
+	N.TextColor3 = Color3.new(1,1,1)
+	N.TextSize = 11
+	N.Font = Enum.Font.GothamMedium
+	N.ZIndex = 100
+	N.Parent = GUI
+
+	Instance.new("UICorner",N).CornerRadius = UDim.new(0,9)
+
+	task.delay(2,N.Destroy,N)
+end
+
+local function GetHumanoid()
+
+	local char = LP.Character
+	if not char then return nil end
+
+	return char:FindFirstChildOfClass("Humanoid")
+end
+
+local function GetRoot()
+
+	local char = LP.Character
+	if not char then return nil end
+
+	return char:FindFirstChild("HumanoidRootPart")
+end
+
+--============================================================--
+-- TABS
+--============================================================--
+
+local function SwitchTab(name)
+
+	for tabName,page in pairs(Pages) do
+
+		page.Visible = tabName == name
+
+		if tabName == name then
+			Tabs[tabName].BackgroundColor3 =
+				Color3.fromRGB(65,65,82)
+		else
+			Tabs[tabName].BackgroundColor3 =
+				Color3.fromRGB(30,30,38)
+		end
+	end
+end
+
+for name,button in pairs(Tabs) do
+	button.MouseButton1Click:Connect(function()
+		SwitchTab(name)
+	end)
+end
+
+--============================================================--
+-- MOVE
+--============================================================--
+
+MakeLabel(MovePage,"MOVEMENT")
+
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Size = UDim2.new(1,-4,0,34)
+SpeedBox.BackgroundColor3 = Color3.fromRGB(29,29,36)
+SpeedBox.Text = "WalkSpeed: 16"
+SpeedBox.TextColor3 = Color3.new(1,1,1)
+SpeedBox.TextSize = 12
+SpeedBox.Font = Enum.Font.Gotham
+SpeedBox.ClearTextOnFocus = false
+SpeedBox.Parent = MovePage
+
+Instance.new("UICorner",SpeedBox).CornerRadius = UDim.new(0,9)
+
+local JumpBox = Instance.new("TextBox")
+JumpBox.Size = UDim2.new(1,-4,0,34)
+JumpBox.BackgroundColor3 = Color3.fromRGB(29,29,36)
+JumpBox.Text = "JumpPower: 50"
+JumpBox.TextColor3 = Color3.new(1,1,1)
+JumpBox.TextSize = 12
+JumpBox.Font = Enum.Font.Gotham
+JumpBox.ClearTextOnFocus = false
+JumpBox.Parent = MovePage
+
+Instance.new("UICorner",JumpBox).CornerRadius = UDim.new(0,9)
+
+local NoclipButton = MakeButton(MovePage,"Noclip: OFF")
+local InfiniteJumpButton = MakeButton(MovePage,"Infinite Jump: OFF")
+local SprintButton = MakeButton(MovePage,"Sprint: OFF")
+local ResetMove = MakeButton(MovePage,"Reset Movement")
+
+SpeedBox.FocusLost:Connect(function()
+
+	local n = tonumber(SpeedBox.Text:match("%d+"))
+
+	if n then
+
+		WALK_SPEED = math.clamp(n,1,100)
+
+		local hum = GetHumanoid()
+
+		if hum then
+			hum.WalkSpeed = WALK_SPEED
+		end
+
+		SpeedBox.Text = "WalkSpeed: "..WALK_SPEED
+		Notify("WalkSpeed: "..WALK_SPEED)
+	else
+		SpeedBox.Text = "WalkSpeed: "..WALK_SPEED
+	end
+end)
+
+JumpBox.FocusLost:Connect(function()
+
+	local n = tonumber(JumpBox.Text:match("%d+"))
+
+	if n then
+
+		JUMP_POWER = math.clamp(n,10,150)
+
+		local hum = GetHumanoid()
+
+		if hum then
+			hum.UseJumpPower = true
+			hum.JumpPower = JUMP_POWER
+		end
+
+		JumpBox.Text = "JumpPower: "..JUMP_POWER
+		Notify("JumpPower: "..JUMP_POWER)
+	else
+		JumpBox.Text = "JumpPower: "..JUMP_POWER
+	end
+end)
+
+NoclipButton.MouseButton1Click:Connect(function()
+
+	NOCLIP = not NOCLIP
+
+	NoclipButton.Text =
+		"Noclip: "..(NOCLIP and "ON" or "OFF")
+
+	if not NOCLIP then
+
+		local char = LP.Character
+
+		if char then
+
+			for part,original in pairs(savedCollision) do
+				if part and part.Parent then
+					part.CanCollide = original
+				end
+			end
+		end
+
+		table.clear(savedCollision)
+	end
+end)
+
+InfiniteJumpButton.MouseButton1Click:Connect(function()
+
+	INFINITE_JUMP = not INFINITE_JUMP
+
+	InfiniteJumpButton.Text =
+		"Infinite Jump: "..(INFINITE_JUMP and "ON" or "OFF")
+end)
+
+SprintButton.MouseButton1Click:Connect(function()
+
+	SPRINT = not SPRINT
+
+	SprintButton.Text =
+		"Sprint: "..(SPRINT and "ON" or "OFF")
+
+	local hum = GetHumanoid()
+
+	if hum then
+		hum.WalkSpeed =
+			SPRINT and SPRINT_SPEED or WALK_SPEED
+	end
+end)
+
+ResetMove.MouseButton1Click:Connect(function()
+
+	WALK_SPEED = 16
+	JUMP_POWER = 50
+	NOCLIP = false
+	INFINITE_JUMP = false
+	SPRINT = false
+
+	SpeedBox.Text = "WalkSpeed: 16"
+	JumpBox.Text = "JumpPower: 50"
+
+	NoclipButton.Text = "Noclip: OFF"
+	InfiniteJumpButton.Text = "Infinite Jump: OFF"
+	SprintButton.Text = "Sprint: OFF"
+
+	local hum = GetHumanoid()
+
+	if hum then
+		hum.WalkSpeed = 16
+		hum.UseJumpPower = true
+		hum.JumpPower = 50
+	end
+
+	Notify("Movement reset")
+end)
+
+--============================================================--
+-- INFINITE JUMP
+--============================================================--
+
+UIS.JumpRequest:Connect(function()
+
+	if not INFINITE_JUMP then
+		return
+	end
+
+	local hum = GetHumanoid()
+
+	if hum then
+		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+--============================================================--
+-- NOCLIP
+--============================================================--
+
+RunService.Stepped:Connect(function()
+
+	if not NOCLIP then
+		return
+	end
+
+	local char = LP.Character
+
+	if not char then
+		return
+	end
+
+	for _,part in ipairs(char:GetDescendants()) do
+
+		if part:IsA("BasePart") then
+
+			if savedCollision[part] == nil then
+				savedCollision[part] = part.CanCollide
+			end
+
+			part.CanCollide = false
+		end
+	end
+end)
+
+--============================================================--
+-- PLAYERS
+--============================================================--
+
+MakeLabel(PlayerPage,"PLAYER TOOLS")
+
+local PlayerSearch = Instance.new("TextBox")
+PlayerSearch.Size = UDim2.new(1,-4,0,32)
+PlayerSearch.BackgroundColor3 = Color3.fromRGB(29,29,36)
+PlayerSearch.PlaceholderText = "Search players..."
+PlayerSearch.PlaceholderColor3 = Color3.fromRGB(125,125,135)
+PlayerSearch.TextColor3 = Color3.new(1,1,1)
+PlayerSearch.TextSize = 11
+PlayerSearch.Font = Enum.Font.Gotham
+PlayerSearch.ClearTextOnFocus = false
+PlayerSearch.Parent = PlayerPage
+
+Instance.new("UICorner",PlayerSearch).CornerRadius = UDim.new(0,9)
+
+local SelectedPlayer
+
+local PlayerList = Instance.new("Frame")
+PlayerList.Size = UDim2.new(1,-4,0,0)
+PlayerList.AutomaticSize = Enum.AutomaticSize.Y
+PlayerList.BackgroundTransparency = 1
+PlayerList.Parent = PlayerPage
+
+local PlayerLayout = Instance.new("UIListLayout")
+PlayerLayout.Padding = UDim.new(0,4)
+PlayerLayout.Parent = PlayerList
+
+local function RefreshPlayers()
+
+	for _,child in ipairs(PlayerList:GetChildren()) do
+
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+
+	local query = PlayerSearch.Text:lower()
+
+	for _,player in ipairs(Players:GetPlayers()) do
+
+		if player ~= LP then
+
+			local matches =
+				query == ""
+				or player.Name:lower():find(query,1,true)
+				or player.DisplayName:lower():find(query,1,true)
+
+			if matches then
+
+				local B = MakeButton(
+					PlayerList,
+					player.DisplayName.."  @"..player.Name
+				)
+
+				B.Size = UDim2.new(1,0,0,30)
+
+				B.MouseButton1Click:Connect(function()
+
+					SelectedPlayer = player
+
+					Notify("Selected "..player.DisplayName)
+				end)
+			end
+		end
+	end
+end
+
+PlayerSearch:GetPropertyChangedSignal("Text"):Connect(RefreshPlayers)
+
+Players.PlayerAdded:Connect(RefreshPlayers)
+Players.PlayerRemoving:Connect(function(player)
+
+	if SelectedPlayer == player then
+		SelectedPlayer = nil
+	end
+
+	RefreshPlayers()
+end)
+
+local RefreshPlayersButton = MakeButton(PlayerPage,"Refresh Players")
+
+RefreshPlayersButton.MouseButton1Click:Connect(RefreshPlayers)
+
+local TeleportButton = MakeButton(PlayerPage,"Teleport To Selected")
+
+TeleportButton.MouseButton1Click:Connect(function()
+
+	if not SelectedPlayer then
+		Notify("Select a player first")
+		return
+	end
+
+	local myRoot = GetRoot()
+	local targetCharacter = SelectedPlayer.Character
+	local targetRoot =
+		targetCharacter and
+		targetCharacter:FindFirstChild("HumanoidRootPart")
+
+	if myRoot and targetRoot then
+
+		myRoot.CFrame =
+			targetRoot.CFrame + Vector3.new(3,0,0)
+
+		Notify("Teleported to "..SelectedPlayer.DisplayName)
+	else
+		Notify("Target is unavailable")
+	end
+end)
+
+local PlayerInfo = MakeButton(PlayerPage,"Player Information")
+
+PlayerInfo.MouseButton1Click:Connect(function()
+
+	if not SelectedPlayer then
+		Notify("Select a player first")
+		return
+	end
+
+	local targetHum =
+		SelectedPlayer.Character and
+		SelectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+
+	local health = targetHum and math.floor(targetHum.Health) or 0
+
+	Notify(
+		SelectedPlayer.DisplayName..
+		" | HP: "..health..
+		" | ID: "..SelectedPlayer.UserId
+	)
+end)
+
+local CopyAvatar = MakeButton(PlayerPage,"Copy Selected Avatar")
+
+CopyAvatar.MouseButton1Click:Connect(function()
+
+	if not SelectedPlayer then
+		Notify("Select a player first")
+		return
+	end
+
+	local hum = GetHumanoid()
+
+	local targetHum =
+		SelectedPlayer.Character and
+		SelectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+
+	if hum and targetHum then
+
+		local success,description =
+			pcall(function()
+				return targetHum:GetAppliedDescription()
+			end)
+
+		if success and description then
+
+			local applied =
+				pcall(function()
+					hum:ApplyDescription(description)
+				end)
+
+			if applied then
+				Notify("Avatar copied")
+			else
+				Notify("Avatar copy failed")
+			end
+		end
+	end
+end)
+
+--============================================================--
+-- SPECTATE
+--============================================================--
+
+local SpectateButton = MakeButton(PlayerPage,"Spectate Selected")
+
+SpectateButton.MouseButton1Click:Connect(function()
+
+	if not SelectedPlayer then
+		Notify("Select a player first")
+		return
+	end
+
+	local hum =
+		SelectedPlayer.Character and
+		SelectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+
+	if hum then
+
+		workspace.CurrentCamera.CameraSubject = hum
+		SPECTATING = true
+
+		SpectateButton.Text = "Stop Spectating"
+		Notify("Spectating "..SelectedPlayer.DisplayName)
+	end
+end)
+
+local StopSpectate = MakeButton(PlayerPage,"Return To Yourself")
+
+StopSpectate.MouseButton1Click:Connect(function()
+
+	local hum = GetHumanoid()
+
+	if hum then
+		workspace.CurrentCamera.CameraSubject = hum
+	end
+
+	SPECTATING = false
+	SpectateButton.Text = "Spectate Selected"
+
+	Notify("Camera restored")
+end)
+
+--============================================================--
+-- EFFECTS
+--============================================================--
+
+MakeLabel(EffectsPage,"EFFECTS")
+
+local FireButton = MakeButton(EffectsPage,"Fire Aura: OFF")
+local RemoveEffects = MakeButton(EffectsPage,"Remove Effects")
+
+local function RemoveFire()
+
+	local char = LP.Character
+
+	if not char then
+		return
+	end
+
+	for _,obj in ipairs(char:GetDescendants()) do
+
+		if obj:IsA("Fire") and obj.Name == "ShawFire" then
+			obj:Destroy()
+		end
+	end
+end
+
+local function AddFire()
+
+	local char = LP.Character
+
+	if not char then
+		return
+	end
+
+	RemoveFire()
+
+	for _,part in ipairs(char:GetChildren()) do
+
+		if part:IsA("BasePart") then
+
+			local fire = Instance.new("Fire")
+			fire.Name = "ShawFire"
+			fire.Size = 5
+			fire.Heat = 4
+			fire.Parent = part
+		end
+	end
+end
+
+FireButton.MouseButton1Click:Connect(function()
+
+	FIRE_AURA = not FIRE_AURA
+
+	FireButton.Text =
+		"Fire Aura: "..(FIRE_AURA and "ON" or "OFF")
+
+	if FIRE_AURA then
+		AddFire()
+	else
+		RemoveFire()
+	end
+end)
+
+RemoveEffects.MouseButton1Click:Connect(function()
+
+	FIRE_AURA = false
+
+	RemoveFire()
+
+	FireButton.Text = "Fire Aura: OFF"
+
+	Notify("Effects removed")
+end)
+
+--============================================================--
+-- INFO / PERFORMANCE
+--============================================================--
+
+MakeLabel(EffectsPage,"PERFORMANCE")
+
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Size = UDim2.new(1,-4,0,30)
+FPSLabel.BackgroundColor3 = Color3.fromRGB(29,29,36)
+FPSLabel.Text = "FPS: calculating..."
+FPSLabel.TextColor3 = Color3.new(1,1,1)
+FPSLabel.TextSize = 12
+FPSLabel.Font = Enum.Font.GothamMedium
+FPSLabel.Parent = EffectsPage
+
+Instance.new("UICorner",FPSLabel).CornerRadius = UDim.new(0,9)
+
+local PingLabel = Instance.new("TextLabel")
+PingLabel.Size = UDim2.new(1,-4,0,30)
+PingLabel.BackgroundColor3 = Color3.fromRGB(29,29,36)
+PingLabel.Text = "Ping: calculating..."
+PingLabel.TextColor3 = Color3.new(1,1,1)
+PingLabel.TextSize = 12
+PingLabel.Font = Enum.Font.GothamMedium
+PingLabel.Parent = EffectsPage
+
+Instance.new("UICorner",PingLabel).CornerRadius = UDim.new(0,9)
+
+local CoordinateLabel = Instance.new("TextLabel")
+CoordinateLabel.Size = UDim2.new(1,-4,0,30)
+CoordinateLabel.BackgroundColor3 = Color3.fromRGB(29,29,36)
+CoordinateLabel.Text = "Position: --"
+CoordinateLabel.TextColor3 = Color3.new(1,1,1)
+CoordinateLabel.TextSize = 11
+CoordinateLabel.Font = Enum.Font.GothamMedium
+CoordinateLabel.Parent = EffectsPage
+
+Instance.new("UICorner",CoordinateLabel).CornerRadius = UDim.new(0,9)
+
+-- FPS
+local frames = 0
+local lastFPSUpdate = os.clock()
+
+RunService.RenderStepped:Connect(function()
+
+	frames += 1
+
+	if os.clock() - lastFPSUpdate >= 1 then
+
+		FPSLabel.Text = "FPS: "..frames
+
+		frames = 0
+		lastFPSUpdate = os.clock()
+	end
+
+	local root = GetRoot()
+
+	if root then
+
+		local p = root.Position
+
+		CoordinateLabel.Text =
+			string.format(
+				"Position: %.0f, %.0f, %.0f",
+				p.X,p.Y,p.Z
+			)
+	end
+end)
+
+task.spawn(function()
+
+	while GUI.Parent do
+
+		task.wait(1)
+
+		local success,ping =
+			pcall(function()
+				return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+			end)
+
+		if success then
+			PingLabel.Text =
+				"Ping: "..math.floor(ping).." ms"
+		end
+	end
+end)
+
+--============================================================--
+-- SETTINGS
+--============================================================--
+
+MakeLabel(SettingsPage,"SETTINGS")
+
+local ResetEverything = MakeButton(SettingsPage,"Reset Everything")
+local ResetCharacter = MakeButton(SettingsPage,"Reset Character")
+local Reapply = MakeButton(SettingsPage,"Reapply Settings")
+local HideHub = MakeButton(SettingsPage,"Hide Hub")
+
+ResetEverything.MouseButton1Click:Connect(function()
+
+	WALK_SPEED = 16
+	JUMP_POWER = 50
+
+	NOCLIP = false
+	INFINITE_JUMP = false
+	SPRINT = false
+	FIRE_AURA = false
+
+	SpeedBox.Text = "WalkSpeed: 16"
+	JumpBox.Text = "JumpPower: 50"
+
+	NoclipButton.Text = "Noclip: OFF"
+	InfiniteJumpButton.Text = "Infinite Jump: OFF"
+	SprintButton.Text = "Sprint: OFF"
+	FireButton.Text = "Fire Aura: OFF"
+
+	RemoveFire()
+
+	local hum = GetHumanoid()
+
+	if hum then
+		hum.WalkSpeed = 16
+		hum.UseJumpPower = true
+		hum.JumpPower = 50
+	end
+
+	Notify("Everything reset")
+end)
+
+ResetCharacter.MouseButton1Click:Connect(function()
+
+	local hum = GetHumanoid()
+
+	if hum then
+		hum.Health = 0
+	end
+end)
+
+Reapply.MouseButton1Click:Connect(function()
+
+	local hum = GetHumanoid()
+
+	if hum then
+		hum.WalkSpeed =
+			SPRINT and SPRINT_SPEED or WALK_SPEED
+
+		hum.UseJumpPower = true
+		hum.JumpPower = JUMP_POWER
+	end
+
+	if FIRE_AURA then
+		AddFire()
+	end
+
+	Notify("Settings reapplied")
+end)
+
+HideHub.MouseButton1Click:Connect(function()
+	Main.Visible = false
+end)
+
+--============================================================--
+-- INFO
+--============================================================--
+
+local InfoTitle = Instance.new("TextLabel")
+InfoTitle.Size = UDim2.new(1,-4,0,40)
+InfoTitle.BackgroundTransparency = 1
+InfoTitle.Text = "SHAW HUB"
+InfoTitle.TextColor3 = Color3.new(1,1,1)
+InfoTitle.TextSize = 23
+InfoTitle.Font = Enum.Font.GothamBold
+InfoTitle.Parent = InfoPage
+
+local Creator = Instance.new("TextLabel")
+Creator.Size = UDim2.new(1,-4,0,32)
+Creator.BackgroundTransparency = 1
+Creator.Text = "Made by Shaw"
+Creator.TextColor3 = Color3.fromRGB(180,180,195)
+Creator.TextSize = 15
+Creator.Font = Enum.Font.GothamSemibold
+Creator.Parent = InfoPage
+
+local Version = Instance.new("TextLabel")
+Version.Size = UDim2.new(1,-4,0,25)
+Version.BackgroundTransparency = 1
+Version.Text = "Shaw Hub V2 • Studio Edition"
+Version.TextColor3 = Color3.fromRGB(135,135,150)
+Version.TextSize = 10
+Version.Font = Enum.Font.Gotham
+Version.Parent = InfoPage
+
+local About = Instance.new("TextLabel")
+About.Size = UDim2.new(1,-4,0,120)
+About.BackgroundColor3 = Color3.fromRGB(27,27,34)
+About.Text =
+	"Welcome to Shaw Hub!\n\n"..
+	"Compact Roblox Studio utility hub.\n\n"..
+	"Movement • Players • Effects\n"..
+	"Performance • Settings\n\n"..
+	"Created by Shaw."
+About.TextColor3 = Color3.fromRGB(215,215,225)
+About.TextSize = 11
+About.Font = Enum.Font.Gotham
+About.TextWrapped = true
+About.Parent = InfoPage
+
+Instance.new("UICorner",About).CornerRadius = UDim.new(0,10)
+
+--============================================================--
+-- REOPEN S BUTTON
+--============================================================--
+
+local Reopen = Instance.new("TextButton")
+Reopen.Size = UDim2.fromOffset(48,48)
+Reopen.Position = UDim2.new(0,15,.5,-24)
+Reopen.BackgroundColor3 = Color3.fromRGB(24,24,31)
+Reopen.Text = "S"
+Reopen.TextColor3 = Color3.new(1,1,1)
+Reopen.TextSize = 20
+Reopen.Font = Enum.Font.GothamBold
+Reopen.Parent = GUI
+
+Instance.new("UICorner",Reopen).CornerRadius = UDim.new(1,0)
+
+local ReopenStroke = Instance.new("UIStroke")
+ReopenStroke.Color = Color3.fromRGB(75,75,90)
+ReopenStroke.Parent = Reopen
+
+Close.MouseButton1Click:Connect(function()
+	Main.Visible = false
+end)
+
+Reopen.MouseButton1Click:Connect(function()
+	Main.Visible = true
+end)
+
+--============================================================--
+-- DRAG MAIN
+--============================================================--
+
+local dragging = false
+local dragStart
+local startPos
+
+Header.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = Main.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+
+		local delta = input.Position - dragStart
+
+		Main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = false
+	end
+end)
+
+--============================================================--
+-- DRAG S BUTTON
+--============================================================--
+
+local draggingS = false
+local sStart
+local sPosition
+
+Reopen.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		draggingS = true
+		sStart = input.Position
+		sPosition = Reopen.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+
+	if draggingS and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+
+		local delta = input.Position - sStart
+
+		Reopen.Position = UDim2.new(
+			sPosition.X.Scale,
+			sPosition.X.Offset + delta.X,
+			sPosition.Y.Scale,
+			sPosition.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		draggingS = false
+	end
+end)
+
+--============================================================--
+-- CHARACTER SETUP
+--============================================================--
+
+local function SetupCharacter(character)
+
+	local hum = character:WaitForChild("Humanoid",5)
+
+	if hum then
+
+		hum.WalkSpeed =
+			SPRINT and SPRINT_SPEED or WALK_SPEED
+
+		hum.UseJumpPower = true
+		hum.JumpPower = JUMP_POWER
+	end
+
+	table.clear(savedCollision)
+
+	task.wait(.5)
+
+	if FIRE_AURA then
+		AddFire()
+	end
+end
+
+LP.CharacterAdded:Connect(SetupCharacter)
+
+if LP.Character then
+	task.spawn(SetupCharacter,LP.Character)
+end
+
+--============================================================--
+-- SAFE SEARCH
+--============================================================--
+-- Search only selects the appropriate tab.
+-- It NEVER deletes, hides, or modifies controls.
+
+local SearchMap = {
+	["speed"] = "Move",
+	["walkspeed"] = "Move",
+	["jump"] = "Move",
+	["jumppower"] = "Move",
+	["noclip"] = "Move",
+	["infinite"] = "Move",
+	["sprint"] = "Move",
+
+	["player"] = "Players",
+	["players"] = "Players",
+	["teleport"] = "Players",
+	["avatar"] = "Players",
+	["skin"] = "Players",
+	["spectate"] = "Players",
+
+	["fire"] = "Effects",
+	["effect"] = "Effects",
+	["fps"] = "Effects",
+	["ping"] = "Effects",
+	["position"] = "Effects",
+	["coordinates"] = "Effects",
+
+	["reset"] = "Settings",
+	["settings"] = "Settings",
+	["hide"] = "Settings",
+
+	["info"] = "Info",
+	["shaw"] = "Info",
+	["creator"] = "Info",
+	["version"] = "Info"
+}
+
+Search.FocusLost:Connect(function()
+
+	local query =
+		Search.Text:lower():gsub("%s+","")
+
+	if query == "" then
+		return
+	end
+
+	for keyword,tab in pairs(SearchMap) do
+
+		if query:find(keyword,1,true)
+			or keyword:find(query,1,true) then
+
+			SwitchTab(tab)
+			Notify("Found: "..keyword)
+
+			return
+		end
+	end
+
+	Notify("Nothing found")
+end)
+
+--============================================================--
+-- START
+--============================================================--
+
+RefreshPlayers()
+SwitchTab("Move")
+
+Notify("Shaw Hub V2 loaded")
